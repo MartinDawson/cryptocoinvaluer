@@ -204,7 +204,7 @@ const SpreadSheet = () => {
         value: year === 0 ? 'Today' : dayjs().add(year, 'year').format('DD/MM/YY'), readOnly: true,
       })),
     ],
-    [{ value: 'Coin Supply', colSpan: 2, readOnly: true }],
+    [{ value: 'Coin Supply', colSpan: yearsArray.length + 1, readOnly: true }],
     [
       { value: 'Total Supply' },
       ...totalSupplies,
@@ -225,7 +225,7 @@ const SpreadSheet = () => {
       { value: 'Tokens in Float after Stakers' },
       ...tokensInFloatAfterStakersArray,
     ],
-    [{ value: 'Economic Activity', colSpan: 2, readOnly: true }],
+    [{ value: 'Economic Activity', colSpan: yearsArray.length + 1, readOnly: true }],
     [
       { value: 'Average Total Volume (daily)' },
       ...averageTotalVolumeArray.map(aT => ({ value: numToDollars(aT.value) })),
@@ -266,7 +266,7 @@ const SpreadSheet = () => {
       { value: 'BNB GDP from Tx Volume' },
       ...bnbGdpFromTransactionVolumeArray.map(bGFTV => ({ value: numToPercent(bGFTV.value) })),
     ],
-    [{ value: 'Utility Value', colSpan: 2, readOnly: true }],
+    [{ value: 'Utility Value', colSpan: yearsArray.length + 1, readOnly: true }],
     [
       { value: 'Monetary Base Required for BNB GDP' },
       ...monetaryBaseRequiredForBnbGdpArray.map(mBRFBD => ({ value: numToDollars(mBRFBD.value) })),
