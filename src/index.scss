@@ -5,3 +5,15 @@ body {
     "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
 }
+
+.data-grid-container {
+  .data-grid {
+    td.cell.read-only {
+      color: #282c33;
+    }
+
+    td.cell.editing input {
+      color: white;
+    }
+  }
+}

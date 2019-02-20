@@ -3,6 +3,7 @@ import ReactDataSheet from 'react-datasheet';
 import { Box, Flex } from 'rebass';
 import numbro from 'numbro';
 import dayjs from 'dayjs';
+import classnames from 'classnames';
 import {
   coinGeckoV3Endpoint, numToPercent, numToDollars,
   roundNumToInteger,
@@ -70,10 +71,7 @@ const fetchBNBHistoricalData = async (setBinanceData) => {
   });
 };
 
-const bnbStakedForReferalBonus = 500;
 const transactionFeeRate = 0.002;
-const annualBnbBurn = 8000000;
-const annualVolumeLogMultiplier = 1.5;
 
 const mapBnbDiscounts = (year) => {
   let value;
@@ -99,6 +97,14 @@ const mapBnbDiscounts = (year) => {
   return { value };
 };
 
+const getSheetRenderer = tableClassName => ({ className, children }) => (
+  <table className={classnames(tableClassName, className)}>
+    <tbody>
+      {children}
+    </tbody>
+  </table>
+);
+
 const SpreadSheet = () => {
   const [{
     totalSupply,
@@ -112,6 +118,18 @@ const SpreadSheet = () => {
     averageTotalVolumeDaily,
   }, setBnbHistoricalData] = useState({});
   const [hasLoadedData, setHadLoadedData] = useState();
+  const [assumptions, setAssumptions] = useState({
+    bnbStakedForReferalBonus: 500,
+    annualBnbBurn: 8000000,
+    annualVolumeLogMultiplier: 1.5,
+  });
+  const [assumptionsData, setAssumptionsData] = useState([
+    [{ value: 'Assumptions', header: true, colSpan: 2, readOnly: true }],
+    [{ value: 'Volume Growth Type', readOnly: true }, { value: 'Logarithmic' }],
+    [{ value: 'Annual Volume Log Multiplier', readOnly: true }, { value: assumptions.annualVolumeLogMultiplier, key: 'annualVolumeLogMultiplier' }],
+    [{ value: 'BNB Staked for Referal Bonus', readOnly: true }, { value: assumptions.bnbStakedForReferalBonus, key: 'bnbStakedForReferalBonus' }],
+    [{ value: 'Annual BNB Burn', readOnly: true }, { value: assumptions.annualBnbBurn, key: 'annualBnbBurn' }],
+  ]);
 
   useEffect(() => {
     const task1 = fetchBnbData(setBnbData);
@@ -126,7 +144,7 @@ const SpreadSheet = () => {
 
   const yearsArray = [0, 1, 2, 3, 4, 5];
   const totalSupplies = yearsArray.map(year => ({
-    value: totalSupply - (year * annualBnbBurn),
+    value: totalSupply - (year * assumptions.annualBnbBurn),
   }));
   const circulatingSupplies = totalSupplies.reduce((prev, current, i) => {
     if (i === 0) {
@@ -144,7 +162,7 @@ const SpreadSheet = () => {
   }, []);
   const usersStakedForReferalBonusArray = yearsArray.map(() => ({ value: 10000 }));
   const coinsInStakeAfterReferalBonusArray = usersStakedForReferalBonusArray
-    .map(stake => ({ value: stake.value * bnbStakedForReferalBonus }));
+    .map(stake => ({ value: stake.value * assumptions.bnbStakedForReferalBonus }));
   const tokensInFloatAfterStakersArray = circulatingSupplies.map((cS, i) => ({
     value: cS.value - coinsInStakeAfterReferalBonusArray[i].value,
   }));
@@ -154,7 +172,8 @@ const SpreadSheet = () => {
     }
 
     return {
-      value: averageTotalVolumeDaily * ((1 + Math.log(year)) * annualVolumeLogMultiplier),
+      value: averageTotalVolumeDaily * ((1 + Math.log(year))
+        * assumptions.annualVolumeLogMultiplier),
     };
   });
   const bnbDiscounts = yearsArray.map(mapBnbDiscounts);
@@ -168,7 +187,7 @@ const SpreadSheet = () => {
     }
 
     return {
-      value: totalVolumeUsd * ((1 + Math.log(year)) * annualVolumeLogMultiplier),
+      value: totalVolumeUsd * ((1 + Math.log(year)) * assumptions.annualVolumeLogMultiplier),
     };
   });
   const bnbVolumeAnnualyArray = totalVolumeDailyArray
@@ -199,101 +218,93 @@ const SpreadSheet = () => {
 
   const valuationData = [
     [
-      { value: 'Date', readOnly: true },
+      { value: 'Date', readOnly: true, header: true },
       ...yearsArray.map(year => ({
-        value: year === 0 ? 'Today' : dayjs().add(year, 'year').format('DD/MM/YY'), readOnly: true,
+        value: year === 0 ? 'Today' : dayjs().add(year, 'year').format('DD/MM/YY'), readOnly: true, header: true,
       })),
     ],
     [{ value: 'Coin Supply', colSpan: yearsArray.length + 1, readOnly: true }],
     [
-      { value: 'Total Supply' },
+      { value: 'Total Supply', readOnly: true },
       ...totalSupplies,
     ],
     [
-      { value: 'Circulating Supply' },
+      { value: 'Circulating Supply', readOnly: true },
       ...circulatingSupplies.map(cS => ({ value: roundNumToInteger(cS.value) })),
     ],
     [
-      { value: 'Users Staked for Referal Bonus' },
+      { value: 'Users Staked for Referal Bonus', readOnly: true },
       ...usersStakedForReferalBonusArray,
     ],
     [
-      { value: 'Coins Staked for Referal Bonus' },
+      { value: 'Coins Staked for Referal Bonus', readOnly: true },
       ...coinsInStakeAfterReferalBonusArray,
     ],
     [
-      { value: 'Tokens in Float after Stakers' },
+      { value: 'Tokens in Float after Stakers', readOnly: true },
       ...tokensInFloatAfterStakersArray,
     ],
-    [{ value: 'Economic Activity', colSpan: yearsArray.length + 1, readOnly: true }],
+    [{ value: 'Economic Activity', header: true, colSpan: yearsArray.length + 1, readOnly: true }],
     [
-      { value: 'Average Total Volume (daily)' },
+      { value: 'Average Total Volume (daily)', readOnly: true },
       ...averageTotalVolumeArray.map(aT => ({ value: numToDollars(aT.value) })),
     ],
     [
-      { value: 'Transaction Fee Rate (Maker + Taker)' },
+      { value: 'Transaction Fee Rate (Maker + Taker)', readOnly: true },
       ...yearsArray.map(() => ({ value: numToPercent(transactionFeeRate) })),
     ],
     [
-      { value: 'BNB Discount' },
+      { value: 'BNB Discount', readOnly: true },
       ...bnbDiscounts.map(bD => ({ value: numToPercent(bD.value) })),
     ],
     [
-      { value: 'Transaction Fee Saved (daily)' },
+      { value: 'Transaction Fee Saved (daily)', readOnly: true },
       ...transactionFeeSavedDailyArray.map(tFSD => ({ value: numToDollars(tFSD.value) })),
     ],
     [
-      { value: 'Transaction Fee Saved (annual)' },
+      { value: 'Transaction Fee Saved (annual)', readOnly: true },
       ...transactionFeeSavedAnnualyArray.map(tFSA => ({ value: numToDollars(tFSA.value) })),
     ],
     [
-      { value: 'BNB Volume (daily)' },
+      { value: 'BNB Volume (daily)', readOnly: true },
       ...totalVolumeDailyArray.map(tVD => ({ value: numToDollars(tVD.value) })),
     ],
     [
-      { value: 'BNB Volume (annual)' },
+      { value: 'BNB Volume (annual)', readOnly: true },
       ...bnbVolumeAnnualyArray.map(bVA => ({ value: numToDollars(bVA.value) })),
     ],
     [
-      { value: 'Total Economic Value Derived from BNB' },
+      { value: 'Total Economic Value Derived from BNB', readOnly: true },
       ...totalEconomicValueDerivedFromBnb.map(tEVDFB => ({ value: numToDollars(tEVDFB.value) })),
     ],
     [
-      { value: 'BNB GDP from Discounts' },
+      { value: 'BNB GDP from Discounts', readOnly: true },
       ...bnbGdpFromDiscountsArray.map(bGFD => ({ value: numToPercent(bGFD.value) })),
     ],
     [
-      { value: 'BNB GDP from Tx Volume' },
+      { value: 'BNB GDP from Tx Volume', readOnly: true },
       ...bnbGdpFromTransactionVolumeArray.map(bGFTV => ({ value: numToPercent(bGFTV.value) })),
     ],
-    [{ value: 'Utility Value', colSpan: yearsArray.length + 1, readOnly: true }],
+    [{ value: 'Utility Value', header: true, colSpan: yearsArray.length + 1, readOnly: true }],
     [
-      { value: 'Monetary Base Required for BNB GDP' },
+      { value: 'Monetary Base Required for BNB GDP', readOnly: true },
       ...monetaryBaseRequiredForBnbGdpArray.map(mBRFBD => ({ value: numToDollars(mBRFBD.value) })),
     ],
     [
-      { value: 'Current Utility Value per BNB in Float' },
+      { value: 'Current Utility Value per BNB in Float', readOnly: true },
       ...currentUtilityValuePerBnbInFloatArray
         .map(cUVPBIF => ({ value: numToDollars(cUVPBIF.value) })),
     ],
   ];
 
   const valuationSummaryData = [
-    [{ value: 'Valuation Summary', colSpan: 2, readOnly: true }],
-    [{ value: 'Current BNB Price' }, { value: numToDollars(currentPriceUsd) }],
-    [{ value: 'Premium over Current Utility' }, { value: numToDollars(premiumOverCurrentUtility) }],
-    [{ value: 'Premium over Current Utility (%)' }, { value: numToPercent(premiumOverCurrentUtilityPercent) }],
-    [{ value: 'Backcalculated Coins in Float' }, { value: numToPercent(premiumOverCurrentUtilityPercent) }],
-    [{ value: 'Annual Volume (BNB)' }, { value: roundNumToInteger(annualVolumeBnb) }],
-  ];
-
-  const assumptionsData = [
-    [{ value: 'Assumptions', colSpan: 2, readOnly: true }],
-    [{ value: 'Volume Growth Type' }, { value: 'Logarithmic' }],
-    [{ value: 'Annual Volume Log Multiplier' }, { value: annualVolumeLogMultiplier }],
-    [{ value: 'Current Velocity' }, { value: numbro(currentVelocity).format({ mantissa: 1 }) }],
-    [{ value: 'BNB Staked for Referal Bonus' }, { value: bnbStakedForReferalBonus }],
-    [{ value: 'Annual BNB Burn' }, { value: annualBnbBurn }],
+    [{ value: 'Valuation Summary', header: true, colSpan: 2, readOnly: true }],
+    [{ value: 'Current BNB Price', readOnly: true }, { value: numToDollars(currentPriceUsd) }],
+    [{ value: 'Premium over Current Utility', readOnly: true }, { value: numToDollars(premiumOverCurrentUtility) }],
+    [{ value: 'Premium over Current Utility (%)', readOnly: true }, { value: numToPercent(premiumOverCurrentUtilityPercent) }],
+    [{ value: 'Backcalculated Coins in Float', readOnly: true }, { value: numToPercent(premiumOverCurrentUtilityPercent) }],
+    [{ value: 'Current Velocity', readOnly: true }, { value: numbro(currentVelocity).format({ mantissa: 1 }) }],
+    [{ value: 'Annual Volume (BNB)', readOnly: true }, { value: roundNumToInteger(annualVolumeBnb) }],
   ];
 
   return (
@@ -303,6 +314,7 @@ const SpreadSheet = () => {
           data={valuationData}
           valueRenderer={cell => cell.value}
           onContextMenu={onContextMenu}
+          sheetRenderer={getSheetRenderer('valuationTable')}
         />
       </Flex>
       <Flex justifyContent="center">
@@ -311,6 +323,7 @@ const SpreadSheet = () => {
             data={valuationSummaryData}
             valueRenderer={cell => cell.value}
             onContextMenu={onContextMenu}
+            sheetRenderer={getSheetRenderer('valuationSummaryTable')}
           />
         </Box>
         <Box ml={10}>
@@ -318,6 +331,21 @@ const SpreadSheet = () => {
             data={assumptionsData}
             valueRenderer={cell => cell.value}
             onContextMenu={onContextMenu}
+            sheetRenderer={getSheetRenderer('assumptionTable')}
+            onCellsChanged={(changes) => {
+              const newAssumptions = {
+                ...assumptions,
+              };
+              const newAssumptionsData = assumptionsData.map(row => [...row]);
+
+              changes.forEach(({ row, col, value, cell }) => {
+                newAssumptions[cell.key] = parseFloat(value);
+                newAssumptionsData[row][col] = { ...newAssumptionsData[row][col], value };
+              });
+
+              setAssumptions(newAssumptions);
+              setAssumptionsData(newAssumptionsData);
+            }}
           />
         </Box>
       </Flex>
